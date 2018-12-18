@@ -17,12 +17,15 @@ import java.util.regex.Pattern;
 
 /**
  * @author Noah
- * @description DocTemplateUtils
+ * @description DocxTemplateUtils
  * @created at 2018-12-12 09:44:48
  **/
-public class DocTemplateUtils {
+public class DocxTemplateUtils {
 
     private static final Pattern pattern = Pattern.compile("\\$\\{(.+?)\\}", Pattern.CASE_INSENSITIVE);
+
+    private DocxTemplateUtils() {
+    }
 
     /**
      * 根据模板生成word(.docx格式)
@@ -31,7 +34,8 @@ public class DocTemplateUtils {
      * @param params      需要替换的参数
      * @param tableList   需要插入的参数
      */
-    public static InputStream createDoc(InputStream docTemplate, Map<String, Object> params, List<String[]> tableList) {
+    public static InputStream createDocxByTemplate(InputStream docTemplate, Map<String, Object> params,
+                                                   List<String[]> tableList) {
         Objects.requireNonNull(docTemplate);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream(4096);
         InputStream inputStream = new ByteArrayInputStream("".getBytes());
