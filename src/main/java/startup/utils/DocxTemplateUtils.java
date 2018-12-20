@@ -8,12 +8,10 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Noah
@@ -22,7 +20,11 @@ import java.util.regex.Pattern;
  **/
 public class DocxTemplateUtils {
 
-    private static final Pattern pattern = Pattern.compile("\\$\\{(.+?)\\}", Pattern.CASE_INSENSITIVE);
+    private static final Pattern REQUIRED_PATTERN = Pattern.compile("\\{(.+?)\\}", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern OPTIONAL_PATTERN_START = Pattern.compile("\\{#(.+?)\\}", Pattern.CASE_INSENSITIVE);
+
+    private static final Pattern OPTIONAL_PATTERN_END = Pattern.compile("\\{/#(.+?)\\}", Pattern.CASE_INSENSITIVE);
 
     private DocxTemplateUtils() {
     }
@@ -51,45 +53,82 @@ public class DocxTemplateUtils {
         return inputStream;
     }
 
-    /**
-     * 替换段落里面的变量
-     *
-     * @param doc    要替换的文档
-     * @param params 参数
-     */
     private static void replaceInPara(XWPFDocument doc, Map<String, Object> params) {
         Iterator<XWPFParagraph> iterator = doc.getParagraphsIterator();
         XWPFParagraph para;
+        int paragraphIndex = 0;
+        List<Integer> tobeRemoveGraphs = new ArrayList<>();
         while (iterator.hasNext()) {
             para = iterator.next();
-            replaceInPara(para, params, doc);
+            boolean isParagraphRemove = removeOptional(para, params);
+            if (isParagraphRemove) {
+                tobeRemoveGraphs.add(paragraphIndex);
+            }
+            replaceInPara(para, params);
+            paragraphIndex++;
         }
+        tobeRemoveGraphs.stream().forEach(index -> doc.removeBodyElement(index));
     }
 
-    /**
-     * 替换段落里面的变量
-     *
-     * @param para   要替换的段落
-     * @param params 参数
-     */
-
-    private static void replaceInPara(XWPFParagraph para, Map<String, Object> params, XWPFDocument doc) {
+    private static void replaceInPara(XWPFParagraph para, Map<String, Object> params) {
         if (CollectionUtils.isEmpty(params)) return;
-        if (!matcher(para.getParagraphText()).find()) return;
+        String paragraphText = para.getParagraphText();
+        if (!matcher(REQUIRED_PATTERN, paragraphText).find()) return;
         List<XWPFRun> runs = para.getRuns();
         for (int i = 0; i < runs.size(); i++) {
             XWPFRun run = runs.get(i);
             String runText = run.toString();
-            if (!matcher(runText).find()) continue;
+            if (!matcher(REQUIRED_PATTERN, runText).find()) continue;
             for (Map.Entry<String, Object> entry : params.entrySet()) {
                 String key = entry.getKey();
-                if (runText.indexOf(key) != -1) {
-                    Object value = entry.getValue();
-                    runText = runText.replace(key, String.valueOf(value == null ? "" : value));
-                    run.setText(runText, 0);
+                Object value = entry.getValue();
+                if (String.class.isAssignableFrom(value.getClass())) {
+                    if (runText.indexOf(key) != -1) {
+                        runText = runText.replace(key, String.valueOf(value == null ? "" : value));
+                        run.setText(runText, 0);
+                    }
+                } else if (Map.class.isAssignableFrom(value.getClass())) {
+                    Map<String, Object> valueMap = (Map) value;
+                    for (Map.Entry<String, Object> valueMapEntry : valueMap.entrySet()) {
+                        key = valueMapEntry.getKey();
+                        value = valueMapEntry.getValue();
+                        if (runText.indexOf(key) != -1) {
+                            runText = runText.replace(key, String.valueOf(value == null ? "" : value));
+                            run.setText(runText, 0);
+                        }
+                    }
                 }
             }
         }
+    }
+
+    private static boolean removeOptional(XWPFParagraph para, Map<String, Object> params) {
+        int optionalStart = -1;
+        int optionalEnd = -1;
+        boolean noRunInParagraph = false;
+        List<XWPFRun> runs = para.getRuns();
+        for (int i = 0; i < runs.size(); i++) {
+            XWPFRun run = runs.get(i);
+            String runText = run.toString();
+            if (matcher(OPTIONAL_PATTERN_START, runText).find()) {
+                optionalStart = i;
+            }
+            if (matcher(OPTIONAL_PATTERN_END, runText).find()) {
+                optionalEnd = i;
+            }
+        }
+        String string = params.keySet().stream().collect(Collectors.joining());
+        if (optionalStart > -1 && !matcher(OPTIONAL_PATTERN_START, string).find()) {
+            for (int i = optionalEnd; i >= optionalStart; i--) {
+                para.removeRun(i);
+            }
+            runs = para.getRuns();
+            //如果当前的Paragraph没有任何元素，就删除该Paragraph
+            if (CollectionUtils.isEmpty(runs)) {
+                noRunInParagraph = true;
+            }
+        }
+        return noRunInParagraph;
     }
 
 //    private static void replaceInPara(XWPFParagraph para, Map<String, Object> params, XWPFDocument doc) {
@@ -197,14 +236,14 @@ public class DocxTemplateUtils {
             table = iterator.next();
             if (table.getRows().size() > 1) {
 //判断表格是需要替换还是需要插入，判断逻辑有$为替换，表格无$为插入
-                if (matcher(table.getText()).find()) {
+                if (matcher(REQUIRED_PATTERN, table.getText()).find()) {
                     rows = table.getRows();
                     for (XWPFTableRow row : rows) {
                         cells = row.getTableCells();
                         for (XWPFTableCell cell : cells) {
                             paras = cell.getParagraphs();
                             for (XWPFParagraph para : paras) {
-                                replaceInPara(para, params, doc);
+                                replaceInPara(para, params);
                             }
                         }
                     }
@@ -221,7 +260,7 @@ public class DocxTemplateUtils {
      * @param str
      * @return
      */
-    private static Matcher matcher(String str) {
+    private static Matcher matcher(Pattern pattern, String str) {
         Matcher matcher = pattern.matcher(str);
         return matcher;
     }
