@@ -156,18 +156,18 @@ under the License.
       <url>http://my.repository.com/repo/path</url>
     </mirror>
      -->
-	 <mirror>
-      <id>alimaven</id>
-	  <name>aliyun maven</name>
-      <mirrorOf>central</mirrorOf>
-      <url>http://maven.aliyun.com/nexus/content/groups/public</url>
-    </mirror> 
-	<mirror>
-      <id>offical</id>
-	  <name>Maven Official Repository</name>
-	  <url>http://repo1.maven.org/maven2</url>
-	  <mirrorOf>central</mirrorOf>
-    </mirror>
+	 <!--<mirror>-->
+      <!--<id>alimaven</id>-->
+	  <!--<name>aliyun maven</name>-->
+      <!--<mirrorOf>central</mirrorOf>-->
+      <!--<url>http://maven.aliyun.com/nexus/content/groups/public</url>-->
+    <!--</mirror> -->
+	<!--<mirror>-->
+      <!--<id>offical</id>-->
+	  <!--<name>Maven Official Repository</name>-->
+	  <!--<url>http://repo1.maven.org/maven2</url>-->
+	  <!--<mirrorOf>central</mirrorOf>-->
+    <!--</mirror>-->
   </mirrors>
 
   <!-- profiles
