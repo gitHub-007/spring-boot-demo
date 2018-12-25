@@ -58,16 +58,22 @@ public class DocxTemplateUtils {
         XWPFParagraph para;
         int paragraphIndex = 0;
         List<Integer> tobeRemoveGraphs = new ArrayList<>();
+        //处理可选段落
         while (iterator.hasNext()) {
             para = iterator.next();
             boolean isParagraphRemove = removeOptional(para, params);
             if (isParagraphRemove) {
                 tobeRemoveGraphs.add(paragraphIndex);
             }
-            replaceInPara(para, params);
             paragraphIndex++;
         }
-        tobeRemoveGraphs.stream().forEach(index -> doc.removeBodyElement(index));
+        tobeRemoveGraphs.stream().sorted(Comparator.reverseOrder()).forEach(index -> doc.removeBodyElement(index));
+        //填充数据
+        iterator = doc.getParagraphsIterator();
+        while (iterator.hasNext()) {
+            para = iterator.next();
+            replaceInPara(para, params);
+        }
     }
 
     private static void replaceInPara(XWPFParagraph para, Map<String, Object> params) {
@@ -78,26 +84,33 @@ public class DocxTemplateUtils {
         for (int i = 0; i < runs.size(); i++) {
             XWPFRun run = runs.get(i);
             String runText = run.toString();
-            if (!matcher(REQUIRED_PATTERN, runText).find()) continue;
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                String key = entry.getKey();
-                Object value = entry.getValue();
-                if (String.class.isAssignableFrom(value.getClass())) {
-                    if (runText.indexOf(key) != -1) {
-                        runText = runText.replace(key, String.valueOf(value == null ? "" : value));
-                        run.setText(runText, 0);
-                    }
-                } else if (Map.class.isAssignableFrom(value.getClass())) {
-                    Map<String, Object> valueMap = (Map) value;
-                    for (Map.Entry<String, Object> valueMapEntry : valueMap.entrySet()) {
-                        key = valueMapEntry.getKey();
-                        value = valueMapEntry.getValue();
-                        if (runText.indexOf(key) != -1) {
-                            runText = runText.replace(key, String.valueOf(value == null ? "" : value));
-                            run.setText(runText, 0);
+            Matcher matcher = matcher(REQUIRED_PATTERN, runText);
+            String matchKey;
+            boolean isReplace = false;
+            while (matcher.find()) {
+                isReplace = true;
+                matchKey = matcher.group();
+                for (Map.Entry<String, Object> entry : params.entrySet()) {
+                    String key = entry.getKey();
+                    Object value = entry.getValue();
+                    if (value != null && Map.class.isAssignableFrom(value.getClass())) {
+                        Map<String, Object> valueMap = (Map) value;
+                        for (Map.Entry<String, Object> valueMapEntry : valueMap.entrySet()) {
+                            key = valueMapEntry.getKey();
+                            value = valueMapEntry.getValue();
+                            if (key.equalsIgnoreCase(matchKey)) {
+                                runText = runText.replace(matchKey, String.valueOf(value == null ? "" : value));
+                            }
+                        }
+                    } else {
+                        if (key.equalsIgnoreCase(matchKey)) {
+                            runText = runText.replace(matchKey, String.valueOf(value == null ? "" : value));
                         }
                     }
                 }
+            }
+            if (isReplace) {
+                run.setText(runText, 0);
             }
         }
     }
@@ -105,7 +118,6 @@ public class DocxTemplateUtils {
     private static boolean removeOptional(XWPFParagraph para, Map<String, Object> params) {
         int optionalStart = -1;
         int optionalEnd = -1;
-        boolean noRunInParagraph = false;
         List<XWPFRun> runs = para.getRuns();
         for (int i = 0; i < runs.size(); i++) {
             XWPFRun run = runs.get(i);
@@ -117,15 +129,33 @@ public class DocxTemplateUtils {
                 optionalEnd = i;
             }
         }
-        String string = params.keySet().stream().collect(Collectors.joining());
-        if (optionalStart > -1 && !matcher(OPTIONAL_PATTERN_START, string).find()) {
-            for (int i = optionalEnd; i >= optionalStart; i--) {
-                para.removeRun(i);
+        boolean noRunInParagraph = false;
+        if (optionalStart > -1) {
+            String string = params.keySet().stream().collect(Collectors.joining());
+            if (!matcher(OPTIONAL_PATTERN_START, string).find()) {
+                for (int i = optionalEnd; i >= optionalStart; i--) {
+                    para.removeRun(i);
+                }
             }
             runs = para.getRuns();
             //如果当前的Paragraph没有任何元素，就删除该Paragraph
             if (CollectionUtils.isEmpty(runs)) {
                 noRunInParagraph = true;
+            } else {
+                for (int i = 0; i < runs.size(); i++) {
+                    XWPFRun run = runs.get(i);
+                    String runText = run.toString();
+                    Matcher matcherStart = matcher(OPTIONAL_PATTERN_START, runText);
+                    while (matcherStart.find()) {
+                        runText = runText.replace(matcherStart.group(), "");
+                        run.setText(runText, 0);
+                    }
+                    Matcher matcherEnd = matcher(OPTIONAL_PATTERN_END, runText);
+                    while (matcherEnd.find()) {
+                        runText = runText.replace(matcherEnd.group(), "");
+                        run.setText(runText, 0);
+                    }
+                }
             }
         }
         return noRunInParagraph;
