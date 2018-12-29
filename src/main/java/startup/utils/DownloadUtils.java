@@ -34,16 +34,12 @@ public class DownloadUtils {
             bos = new ByteArrayOutputStream();
             //将ZipOutputStream转换成ByteArrayOutputStream在转换成ByteArrayInputStream输出
             out = new ZipOutputStream(bos);
-            byte[] buf = new byte[1024];
             try {
-                int len;
                 for (Map.Entry<String, InputStream> inputStreamMap : inputStreams.entrySet()) {
                     String fileName = inputStreamMap.getKey();
                     InputStream inputStream = inputStreamMap.getValue();
                     out.putNextEntry(new ZipEntry(fileName));
-                    while ((len = inputStream.read(buf)) > 0) {
-                        out.write(buf, 0, len);
-                    }
+                    IOUtils.copyLarge(inputStream, out);
                     out.flush();
                     out.closeEntry();
                     inputStream.close();

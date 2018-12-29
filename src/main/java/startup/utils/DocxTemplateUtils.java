@@ -123,43 +123,57 @@ public class DocxTemplateUtils {
     }
 
     private static boolean removeOptional(XWPFParagraph para, Map<String, Object> params) {
-        int optionalStart = -1;
-        int optionalEnd = -1;
+        int optionalStart;
+        int optionalEnd;
+        String optionalKeyStart = "";
         List<XWPFRun> runs = para.getRuns();
+        Matcher matcher;
+        List<String> list = new ArrayList<>();
         for (int i = 0; i < runs.size(); i++) {
             XWPFRun run = runs.get(i);
             String runText = run.toString();
-            if (matcher(OPTIONAL_PATTERN_START, runText).find()) {
+            optionalStart = optionalEnd = -1;
+            matcher = matcher(OPTIONAL_PATTERN_START, runText);
+            if (matcher.find()) {
+                optionalKeyStart = matcher.group();
                 optionalStart = i;
             }
-            if (matcher(OPTIONAL_PATTERN_END, runText).find()) {
+            matcher = matcher(OPTIONAL_PATTERN_END, runText);
+            if (matcher.find()) {
                 optionalEnd = i;
+            }
+            if (optionalStart != -1 && optionalEnd != -1) {
+                list.add(String.format("%s_%d,%d", optionalKeyStart, optionalStart, optionalEnd));
             }
         }
         boolean noRunInParagraph = false;
-        if (optionalStart > -1) {
-            String string = params.keySet().stream().collect(Collectors.joining());
-            if (!matcher(OPTIONAL_PATTERN_START, string).find()) {
-                for (int i = optionalEnd; i >= optionalStart; i--) {
-                    para.removeRun(i);
+        if (!CollectionUtils.isEmpty(list)) {
+            String keys = params.keySet().stream().collect(Collectors.joining());
+            list.forEach(string -> {
+                String[] keyIndex = StringUtils.split(string, "_");
+                if (!StringUtils.isBlank(keyIndex[0]) && keys.indexOf(keyIndex[0]) < 0) {
+                    String[] indexs = StringUtils.split(keyIndex[1], ",");
+                    for (int i = Integer.parseInt(indexs[1]); i >= Integer.parseInt(indexs[0]); i--) {
+                        para.removeRun(i);
+                    }
                 }
-            }
+
+            });
             runs = para.getRuns();
-            //如果当前的Paragraph没有任何元素，就删除该Paragraph
             if (CollectionUtils.isEmpty(runs)) {
                 noRunInParagraph = true;
             } else {
                 for (int i = 0; i < runs.size(); i++) {
                     XWPFRun run = runs.get(i);
                     String runText = run.toString();
-                    Matcher matcherStart = matcher(OPTIONAL_PATTERN_START, runText);
-                    while (matcherStart.find()) {
-                        runText = runText.replace(matcherStart.group(), "");
+                    matcher = matcher(OPTIONAL_PATTERN_START, runText);
+                    while (matcher.find()) {
+                        runText = runText.replace(matcher.group(), "");
                         run.setText(runText, 0);
                     }
-                    Matcher matcherEnd = matcher(OPTIONAL_PATTERN_END, runText);
-                    while (matcherEnd.find()) {
-                        runText = runText.replace(matcherEnd.group(), "");
+                    matcher = matcher(OPTIONAL_PATTERN_END, runText);
+                    while (matcher.find()) {
+                        runText = runText.replace(matcher.group(), "");
                         run.setText(runText, 0);
                     }
                 }
@@ -197,7 +211,7 @@ public class DocxTemplateUtils {
 
     private static int getPictureType(String picType) {
         int res = Document.PICTURE_TYPE_PICT;
-        if (picType != null) {
+        if (!StringUtils.isBlank(picType)) {
             switch (picType.toLowerCase()) {
                 case "png":
                     res = Document.PICTURE_TYPE_PNG;
