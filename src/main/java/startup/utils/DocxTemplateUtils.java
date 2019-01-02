@@ -97,17 +97,18 @@ public class DocxTemplateUtils {
                     Object value = entry.getValue();
                     if (value != null && Map.class.isAssignableFrom(value.getClass())) {
                         Map<String, Object> valueMap = (Map) value;
-                        if (matchKey.contains(ELECTRONIC_SIGNATURE) && key.equalsIgnoreCase(matchKey)) {
-                            runText = runText.replace(matchKey, "");
-                            insertPic(run, valueMap);
-                        } else {
-                            for (Map.Entry<String, Object> valueMapEntry : valueMap.entrySet()) {
-                                key = valueMapEntry.getKey();
-                                value = valueMapEntry.getValue();
-                                if (key.equalsIgnoreCase(matchKey)) {
-                                    runText = runText.replace(matchKey, String.valueOf(value == null ? "" : value));
-                                }
+                        for (Map.Entry<String, Object> valueMapEntry : valueMap.entrySet()) {
+                            key = valueMapEntry.getKey();
+                            value = valueMapEntry.getValue();
+                            if (key.equalsIgnoreCase(matchKey)) {
+                                runText = runText.replace(matchKey, String.valueOf(value == null ? "" : value));
                             }
+                        }
+                    } else if (value != null && SignPic.class.isAssignableFrom(value.getClass())) {
+                        if (key.equalsIgnoreCase(matchKey)) {
+                            runText = runText.replace(matchKey, "");
+                            SignPic signPic = (SignPic) value;
+                            insertPic(run, signPic);
                         }
                     } else {
                         if (key.equalsIgnoreCase(matchKey)) {
@@ -188,20 +189,16 @@ public class DocxTemplateUtils {
     }
 
     /**
-     * //插入图片
-     *
+     *  插入图片
      * @param run
-     * @param params
+     * @param signPic
      */
-    private static void insertPic(XWPFRun run, Map<String, Object> params) {
-        if (CollectionUtils.isEmpty(params)) return;
-        int width = Integer.parseInt(params.get("width").toString());
-        int height = Integer.parseInt(params.get("height").toString());
-        int picType = getPictureType(params.get("type").toString());
-        InputStream picStream = (InputStream) params.get("content");
+    private static void insertPic(XWPFRun run, SignPic signPic) {
+        if (signPic == null) return;
+        InputStream picStream = signPic.getContent();
         try {
-            run.addPicture(picStream, picType, (String) params.get("fileName"), Units.toEMU(width),
-                           Units.toEMU(height));
+            run.addPicture(picStream, getPictureType(signPic.getType()), signPic.getFileName(),
+                           Units.toEMU(signPic.getWidth()), Units.toEMU(signPic.getHeight()));
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -228,17 +225,75 @@ public class DocxTemplateUtils {
         return res;
     }
 
+    public static class SignPic {
+        private int width;
+        private int height;
+        private String fileName;
+        private String type;
+        private InputStream content;
+
+        public String getType() {
+            return type;
+        }
+
+        public SignPic setType(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public InputStream getContent() {
+            return content;
+        }
+
+        public SignPic setContent(InputStream content) {
+            this.content = content;
+            return this;
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public SignPic setWidth(int width) {
+            this.width = width;
+            return this;
+        }
+
+        public int getHeight() {
+            return height;
+        }
+
+        public SignPic setHeight(int height) {
+            this.height = height;
+            return this;
+        }
+
+        public String getFileName() {
+            return fileName;
+        }
+
+        public SignPic setFileName(String fileName) {
+            this.fileName = fileName;
+            return this;
+        }
+    }
+
     public static void main(String[] args) throws Exception {
+        String string = "{#陪审员1}人民陪审员    {陪审员1电子签名}（{陪审员1}）{/#陪审员1}";
+        Matcher matcher = matcher(REQUIRED_PATTERN, string);
+        System.out.println(matcher.find());
+        matcher.reset();
+        while (matcher.find()) {
+            System.out.println(matcher.group());
+        }
+
         Map<String, Object> param = new HashMap<>();
-        Map<String, Object> header = new HashMap<>();
-        header.put("width", 50);
-        header.put("height", 20);
-        header.put("type", "jpg");
         Path picPath = Paths.get("F:\\法官电子签名.jpg");
-        header.put("fileName", picPath.getFileName().toString());
-        byte[] pic = IOUtils.toByteArray(new FileInputStream(picPath.toFile()));
-        header.put("content", pic);
-        param.put("{承办法官电子签名}", header);
+        SignPic signPic =
+                new SignPic().setFileName(picPath.getFileName().toString())
+                        .setHeight(20).setWidth(50).setContent(new FileInputStream(picPath.toFile()))
+                        .setType(StringUtils.substringAfter(picPath.getFileName().toString(), "."));
+        param.put("{承办法官电子签名}", signPic);
         InputStream inputStream = new FileInputStream("F:\\java_workspace\\finance_court\\WebContent\\WEB-INF" +
                                                               "\\docx_template\\要素式判决-保险保证合同纠纷.docx");
         inputStream = DocxTemplateUtils.createDocxByTemplate(inputStream, param, null);
@@ -249,6 +304,7 @@ public class DocxTemplateUtils {
         outputStream.close();
         System.out.println(path.getFileName().toString());
         System.out.println(StringUtils.substringAfter(path.getFileName().toString(), "."));
+
     }
 
 //    private static void replaceInPara(XWPFParagraph para, Map<String, Object> params, XWPFDocument doc) {
