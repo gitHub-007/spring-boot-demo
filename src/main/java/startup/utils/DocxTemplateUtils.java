@@ -124,8 +124,7 @@ public class DocxTemplateUtils {
     }
 
     private static boolean removeOptional(XWPFParagraph para, Map<String, Object> params) {
-        int optionalStart;
-        int optionalEnd;
+        int optionalStart,optionalEnd;
         String optionalKeyStart = "";
         List<XWPFRun> runs = para.getRuns();
         Matcher matcher;
@@ -153,8 +152,8 @@ public class DocxTemplateUtils {
             list.forEach(string -> {
                 String[] keyIndex = StringUtils.split(string, "_");
                 if (!StringUtils.isBlank(keyIndex[0]) && keys.indexOf(keyIndex[0]) < 0) {
-                    String[] indexs = StringUtils.split(keyIndex[1], ",");
-                    for (int i = Integer.parseInt(indexs[1]); i >= Integer.parseInt(indexs[0]); i--) {
+                    String[] indexes = StringUtils.split(keyIndex[1], ",");
+                    for (int i = Integer.parseInt(indexes[1]); i >= Integer.parseInt(indexes[0]); i--) {
                         para.removeRun(i);
                     }
                 }
