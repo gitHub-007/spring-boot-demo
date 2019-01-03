@@ -20,11 +20,14 @@ import java.util.stream.Collectors;
  **/
 public class DocxTemplateUtils {
 
-    private static final Pattern REQUIRED_PATTERN = Pattern.compile("\\{(.+?)\\}", Pattern.CASE_INSENSITIVE);
+    //匹配汉字字母
+    private static final Pattern REQUIRED_PATTERN =  Pattern.compile("\\{[a-zA-Z0-9\\u4E00-\\u9FA5]+?\\}",
+                                                                     Pattern.CASE_INSENSITIVE);
 
     private static final Pattern OPTIONAL_PATTERN_START = Pattern.compile("\\{#(.+?)\\}", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern OPTIONAL_PATTERN_END = Pattern.compile("\\{/#(.+?)\\}", Pattern.CASE_INSENSITIVE);
+
 
     public static final String ELECTRONIC_SIGNATURE = "电子签名";
 
@@ -124,7 +127,7 @@ public class DocxTemplateUtils {
     }
 
     private static boolean removeOptional(XWPFParagraph para, Map<String, Object> params) {
-        int optionalStart,optionalEnd;
+        int optionalStart=-1,optionalEnd=-1;
         String optionalKeyStart = "";
         List<XWPFRun> runs = para.getRuns();
         Matcher matcher;
@@ -132,7 +135,6 @@ public class DocxTemplateUtils {
         for (int i = 0; i < runs.size(); i++) {
             XWPFRun run = runs.get(i);
             String runText = run.toString();
-            optionalStart = optionalEnd = -1;
             matcher = matcher(OPTIONAL_PATTERN_START, runText);
             if (matcher.find()) {
                 optionalKeyStart = matcher.group();
@@ -144,6 +146,7 @@ public class DocxTemplateUtils {
             }
             if (optionalStart != -1 && optionalEnd != -1) {
                 list.add(String.format("%s_%d,%d", optionalKeyStart, optionalStart, optionalEnd));
+                optionalStart = optionalEnd = -1;
             }
         }
         boolean noRunInParagraph = false;
@@ -280,8 +283,6 @@ public class DocxTemplateUtils {
     public static void main(String[] args) throws Exception {
         String string = "{#陪审员1}人民陪审员    {陪审员1电子签名}（{陪审员1}）{/#陪审员1}";
         Matcher matcher = matcher(REQUIRED_PATTERN, string);
-        System.out.println(matcher.find());
-        matcher.reset();
         while (matcher.find()) {
             System.out.println(matcher.group());
         }
