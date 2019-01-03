@@ -21,13 +21,12 @@ import java.util.stream.Collectors;
 public class DocxTemplateUtils {
 
     //匹配汉字字母
-    private static final Pattern REQUIRED_PATTERN =  Pattern.compile("\\{[a-zA-Z0-9\\u4E00-\\u9FA5]+?\\}",
-                                                                     Pattern.CASE_INSENSITIVE);
+    private static final Pattern REQUIRED_PATTERN = Pattern.compile("\\{[a-zA-Z0-9\\u4E00-\\u9FA5]+?\\}",
+                                                                    Pattern.CASE_INSENSITIVE);
 
     private static final Pattern OPTIONAL_PATTERN_START = Pattern.compile("\\{#(.+?)\\}", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern OPTIONAL_PATTERN_END = Pattern.compile("\\{/#(.+?)\\}", Pattern.CASE_INSENSITIVE);
-
 
     public static final String ELECTRONIC_SIGNATURE = "电子签名";
 
@@ -85,15 +84,14 @@ public class DocxTemplateUtils {
         if (CollectionUtils.isEmpty(params)) return;
         String paragraphText = para.getParagraphText();
         if (!matcher(REQUIRED_PATTERN, paragraphText).find()) return;
+        String matchKey;
+        boolean isReplace = false;
         List<XWPFRun> runs = para.getRuns();
         for (int i = 0; i < runs.size(); i++) {
             XWPFRun run = runs.get(i);
             String runText = run.toString();
             Matcher matcher = matcher(REQUIRED_PATTERN, runText);
-            String matchKey;
-            boolean isReplace = false;
             while (matcher.find()) {
-                isReplace = true;
                 matchKey = matcher.group();
                 for (Map.Entry<String, Object> entry : params.entrySet()) {
                     String key = entry.getKey();
@@ -105,29 +103,33 @@ public class DocxTemplateUtils {
                             value = valueMapEntry.getValue();
                             if (key.equalsIgnoreCase(matchKey)) {
                                 runText = runText.replace(matchKey, String.valueOf(value == null ? "" : value));
+                                isReplace = true;
                             }
                         }
                     } else if (value != null && SignPic.class.isAssignableFrom(value.getClass())) {
                         if (key.equalsIgnoreCase(matchKey)) {
                             runText = runText.replace(matchKey, "");
+                            isReplace = true;
                             SignPic signPic = (SignPic) value;
                             insertPic(run, signPic);
                         }
                     } else {
                         if (key.equalsIgnoreCase(matchKey)) {
                             runText = runText.replace(matchKey, String.valueOf(value == null ? "" : value));
+                            isReplace = true;
                         }
                     }
                 }
             }
             if (isReplace) {
                 run.setText(runText, 0);
+                isReplace = false;
             }
         }
     }
 
     private static boolean removeOptional(XWPFParagraph para, Map<String, Object> params) {
-        int optionalStart=-1,optionalEnd=-1;
+        int optionalStart = -1, optionalEnd = -1;
         String optionalKeyStart = "";
         List<XWPFRun> runs = para.getRuns();
         Matcher matcher;
@@ -191,7 +193,8 @@ public class DocxTemplateUtils {
     }
 
     /**
-     *  插入图片
+     * 插入图片
+     *
      * @param run
      * @param signPic
      */
@@ -281,18 +284,21 @@ public class DocxTemplateUtils {
     }
 
     public static void main(String[] args) throws Exception {
-        String string = "{#陪审员1}人民陪审员    {陪审员1电子签名}（{陪审员1}）{/#陪审员1}";
+
+        System.out.println("u4E00");
+        String string = "{#陪审员1}人民陪审员    {陪审员1电子签名} {中華人民共和國}（{陪审员1}）{/#陪审员1}";
         Matcher matcher = matcher(REQUIRED_PATTERN, string);
         while (matcher.find()) {
             System.out.println(matcher.group());
         }
 
+        matcher.reset();
+        System.out.println(matcher.matches());
+
         Map<String, Object> param = new HashMap<>();
         Path picPath = Paths.get("F:\\法官电子签名.jpg");
         SignPic signPic =
-                new SignPic().setFileName(picPath.getFileName().toString())
-                        .setHeight(20).setWidth(50).setContent(new FileInputStream(picPath.toFile()))
-                        .setType(StringUtils.substringAfter(picPath.getFileName().toString(), "."));
+                new SignPic().setFileName(picPath.getFileName().toString()).setHeight(20).setWidth(50).setContent(new FileInputStream(picPath.toFile())).setType(StringUtils.substringAfter(picPath.getFileName().toString(), "."));
         param.put("{承办法官电子签名}", signPic);
         InputStream inputStream = new FileInputStream("F:\\java_workspace\\finance_court\\WebContent\\WEB-INF" +
                                                               "\\docx_template\\要素式判决-保险保证合同纠纷.docx");
