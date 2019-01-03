@@ -1,0 +1,2 @@
+FROM tomcat
+COPY ptnetwork-base-5.0.2-SNAPSHOT/ /usr/local/tomcat/webapps/ROOT/
