@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  **/
 public class DocxTemplateUtils {
 
-    //匹配汉字字母
+    //匹配汉字字母 但是匹配不了{我的、你的}这样的格式
     private static final Pattern REQUIRED_PATTERN = Pattern.compile("\\{[a-zA-Z0-9\\u4E00-\\u9FA5]+?\\}",
                                                                     Pattern.CASE_INSENSITIVE);
 
@@ -286,7 +286,7 @@ public class DocxTemplateUtils {
     public static void main(String[] args) throws Exception {
 
         System.out.println("u4E00");
-        String string = "{#陪审员1}人民陪审员    {陪审员1电子签名} {中華人民共和國}（{陪审员1}）{/#陪审员1}";
+        String string = "{#陪审员1}人民陪审员    {陪审员1电子签名} {中華人民共和國}（{陪审员1}）{我的、你的}{/#陪审员1}";
         Matcher matcher = matcher(REQUIRED_PATTERN, string);
         while (matcher.find()) {
             System.out.println(matcher.group());
@@ -313,67 +313,6 @@ public class DocxTemplateUtils {
 
     }
 
-//    private static void replaceInPara(XWPFParagraph para, Map<String, Object> params, XWPFDocument doc) {
-//        if (CollectionUtils.isEmpty(params)) return;
-//        List<XWPFRun> runs;
-//        if (matcher(para.getParagraphText()).find()) {
-//            runs = para.getRuns();
-//            int start = -1;
-//            int end = -1;
-//            String str = "";
-//            for (int i = 0; i < runs.size(); i++) {
-//                XWPFRun run = runs.get(i);
-//                String runText = run.toString();
-//                if ('$' == runText.charAt(0) && '{' == runText.charAt(1)) {
-//                    start = i;
-//                }
-//                if ((start != -1)) {
-//                    str += runText;
-//                }
-//                if ('}' == runText.charAt(runText.length() - 1)) {
-//                    if (start != -1) {
-//                        end = i;
-//                        break;
-//                    }
-//                }
-//            }
-//
-//            for (int i = start; i <= end; i++) {
-//                para.removeRun(i);
-//                i--;
-//                end--;
-//            }
-//            for (Map.Entry<String, Object> entry : params.entrySet()) {
-//                String key = entry.getKey();
-//                if (str.indexOf(key) != -1) {
-//                    Object value = entry.getValue();
-//                    if (value instanceof String) {
-//                        str = str.replace(key, value.toString());
-//                        para.createRun().setText(str, 0);
-//                        break;
-//                    } else if (value instanceof Map) {
-//                        str = str.replace(key, "");
-//                        Map pic = (Map) value;
-//                        int width = Integer.parseInt(pic.get("width").toString());
-//                        int height = Integer.parseInt(pic.get("height").toString());
-//                        int picType = getPictureType(pic.get("type").toString());
-//                        byte[] byteArray = (byte[]) pic.get("content");
-//                        ByteArrayInputStream byteInputStream = new ByteArrayInputStream(byteArray);
-//                        try {
-////int ind = doc.addPicture(byteInputStream,picType);
-////doc.createPicture(ind, width , height,para);
-//                            doc.addPictureData(byteInputStream, picType);
-//// doc.createPicture(doc.getAllPictures().size() - 1, width, height, para);
-//                            para.createRun().setText(str, 0);
-//                            break;
-//                        } catch (Exception e) {
-//                            e.printStackTrace();
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
 
     /**
      * 为表格插入数据，行数不够添加新行
