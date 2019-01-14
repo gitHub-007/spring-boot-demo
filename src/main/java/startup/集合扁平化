@@ -1,0 +1,22 @@
+ map扁平化
+ private void saveGenerateFileRecord(MultiValueMap<String, String> multiValueMap, Path dirPath) {
+        MultiValueMap<String, String> lawCaseMap = new LinkedMultiValueMap<>();
+        multiValueMap.forEach((templateName, lawCaseIds) -> lawCaseIds.forEach(id -> lawCaseMap.add(id,templateName)));
+        lawCaseMap.entrySet().stream().map(entry -> {
+            Map<String, String> map1 = new HashMap<>();
+            map1.put(entry.getKey(), String.join(",", entry.getValue()));
+            return map1;
+        }).flatMap(map -> map.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+                .forEach((key, value) -> {
+            GeneratedRecord generatedRecord = new GeneratedRecord();
+            generatedRecord.setLawCaseId(key);
+            generatedRecord.setTemplateNames(value);
+            generatedRecord.setFilePath(dirPath.toAbsolutePath().toString());
+            generatedRecordDao.persist(generatedRecord);
+        });
+    }
+   
+list扁平化 
+List<Contract> contractList =
+                    new LinkedList<>(judgementResult.getLawCase().getFinances().stream().map(finance1 -> finance1.getContracts()).flatMap(contracts -> contracts.stream()).collect(Collectors.toList()));
