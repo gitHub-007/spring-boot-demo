@@ -364,6 +364,7 @@ public class DocxTemplateUtils {
                         for (XWPFTableCell cell : cells) {
                             paras = cell.getParagraphs();
                             for (XWPFParagraph para : paras) {
+                                removeOptional(para, params);
                                 replaceInPara(para, params);
                             }
                         }
@@ -373,6 +374,15 @@ public class DocxTemplateUtils {
                 }
             }
         }
+    }
+
+
+    public static String getFormatKey(String key) {
+        return String.format("{%s}", key);
+    }
+
+    public static String getOptionalFormatKey(String key) {
+        return String.format("{#%s}", key);
     }
 
 }
