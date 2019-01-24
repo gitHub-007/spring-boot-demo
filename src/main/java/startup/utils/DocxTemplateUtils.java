@@ -123,7 +123,23 @@ public class DocxTemplateUtils {
             }
             if (isReplace) {
                 run.setText(runText, 0);
+                if (StringUtils.indexOf(runText, "\\r") >= 0) {
+                    setWrap(runText, para, run);
+                }
                 isReplace = false;
+            }
+        }
+    }
+
+    private static void setWrap(String value, XWPFParagraph paragraph, XWPFRun run) {
+        run.setText("", 0);
+        String[] text = StringUtils.split(value, "\\r");
+        for (int f = 0; f < text.length; f++) {
+            if (f == 0) {
+                run.setText(text[f].trim());
+            } else {
+                run.addCarriageReturn();
+                run.setText(text[f].trim());
             }
         }
     }
