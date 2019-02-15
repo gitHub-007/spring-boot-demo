@@ -24,10 +24,10 @@ import me.chanjar.weixin.mp.bean.kefu.result.WxMpKfOnlineList;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
 import me.chanjar.weixin.mp.constant.WxMpEventConstants;
-import net.ptnetwork.config.WxMpConfig;
-import net.ptnetwork.wxap.mp.handler.KfSessionHandler;
-import net.ptnetwork.wxap.mp.handler.LogHandler;
-import net.ptnetwork.wxap.mp.handler.MsgHandler;
+import startup.mp.WxMpConfig;
+import startup.mp.handler.KfSessionHandler;
+import startup.mp.handler.LogHandler;
+import startup.mp.handler.MsgHandler;
 
 /**
  * @author Noah

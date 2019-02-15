@@ -12,8 +12,8 @@ import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.kefu.result.WxMpKfInfo;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
-import net.ptnetwork.wxap.mp.builder.TextBuilder;
-import net.ptnetwork.wxap.mp.service.WeixinService;
+import startup.mp.builder.TextBuilder;
+import startup.mp.service.WeixinService;
 
 /**
  * @author Noah

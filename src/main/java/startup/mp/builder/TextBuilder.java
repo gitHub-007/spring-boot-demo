@@ -3,7 +3,7 @@ package startup.mp.builder;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutTextMessage;
-import net.ptnetwork.wxap.mp.service.WeixinService;
+import startup.mp.service.WeixinService;
 
 /**
  * @author Binary Wang

@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
-import net.ptnetwork.wxap.mp.service.WeixinService;
+import startup.mp.service.WeixinService;
 
 /**
  * @author Binary Wang
