@@ -5,6 +5,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class AsynCollection {
     private static final Logger logger = LoggerFactory.getLogger(AsynCollection.class);
 
     private Map<String, InputStream> ceateDocx() {
+        File file = new File("");
         long start = System.currentTimeMillis();
         Map<String, InputStream> allMap = new HashMap<>();
         int count = 100;

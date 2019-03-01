@@ -5,52 +5,62 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
-public class SplitFileUtils {
-    public static String SOURCE_FILE = "F:\\201808121519016710.jpg"; // 文件的路径
-    public static String OUT_FILE = "F:\\out.jpg"; // 文件的路径
-    public static int COUNT = 10; // 将文件切割成多少份
+import org.apache.commons.lang3.StringUtils;
+
+public class SplitFile {
+    private static int BYTE = 1;
+    private static int KB = 1024 * BYTE;
+    private static int MB = 1024 * KB;
+
+    enum UNIT {
+        KB, MB;
+    }
 
     public static void main(String[] args) {
-        getSplitFile();
-        merge(OUT_FILE, SOURCE_FILE, 10);
+        String SOURCE_FILE = "F:\\CMMI4\\课件\\基线建立-1.wmv"; // 文件的路径
+        String OUT_FILE = "F:\\out-1.wmv"; // 文件的路径
+        Long count = getSplitFile(SOURCE_FILE, UNIT.KB);
+        if (count <= -1)
+            return;
+        merge(OUT_FILE, SOURCE_FILE, count.intValue());
     }
 
     /**
      * 文件分割方法
      */
-    public static void getSplitFile() {
-        String file = SOURCE_FILE; // 文件的路径
-
-        int count = COUNT; // 文件分割的份数
-        RandomAccessFile raf = null;
-        try {
-            // 获取目标文件 预分配文件所占的空间 在磁盘中创建一个指定大小的文件 r 是只读
-            raf = new RandomAccessFile(new File(file), "r");
+    public static Long getSplitFile(String sourceFile, UNIT unit) {
+        // 文件的路径
+        String file = sourceFile;
+        // 文件分割的份数
+        long count = -1;
+        // 获取目标文件 预分配文件所占的空间 在磁盘中创建一个指定大小的文件 r 是只读
+        try (RandomAccessFile raf = new RandomAccessFile(new File(file), "r")) {
             long length = raf.length();// 文件的总长度
+            switch (unit) {
+                case KB:
+                    count = length / KB;
+                    break;
+                case MB:
+                    count = length / MB;
+                    break;
+            }
             long maxSize = length / count;// 文件切片后的长度
             long offSet = 0L;// 初始化偏移量
-            for (int i = 0; i < count - 1; i++) { // 最后一片单独处理
-                long begin = offSet;
+            for (int i = 0; i < count; i++) {
                 long end = (i + 1) * maxSize;
-                // offSet = writeFile(SOURCE_FILE, begin, end, i);
-                offSet = getWrite(file, i, begin, end);
+                // 最后一片单独处理
+                if (i == count - 1) {
+                    getWrite(file, i, offSet, length);
+                } else {
+                    offSet = getWrite(file, i, offSet, end);
+                }
             }
-            if (length - offSet > 0) {
-                getWrite(file, count - 1, offSet, length);
-            }
-
         } catch (FileNotFoundException e) {
-            System.out.println("没有找到文件");
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                raf.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
+        return count;
     }
 
     /**
@@ -67,14 +77,13 @@ public class SplitFileUtils {
      * @return long
      */
     public static long getWrite(String file, int index, long begin, long end) {
-        String a = file.split(".jpg")[0];
+        String fileName = StringUtils.substringBeforeLast(file, ".");
         long endPointer = 0L;
-        try {
+        try (
             // 申明文件切割后的文件磁盘
             RandomAccessFile in = new RandomAccessFile(new File(file), "r");
             // 定义一个可读，可写的文件并且后缀名为.tmp的二进制文件
-            RandomAccessFile out = new RandomAccessFile(new File(a + "_" + index + ".tmp"), "rw");
-
+            RandomAccessFile out = new RandomAccessFile(new File(fileName + "_" + index + ".tmp"), "rw")) {
             // 申明具体每一文件的字节数组
             byte[] b = new byte[1024];
             int n = 0;
@@ -87,10 +96,6 @@ public class SplitFileUtils {
             }
             // 定义当前读取文件的指针
             endPointer = in.getFilePointer();
-            // 关闭输入流
-            in.close();
-            // 关闭输出流
-            out.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -108,15 +113,13 @@ public class SplitFileUtils {
      *            文件个数
      */
     public static void merge(String file, String tempFile, int tempCount) {
-        String a = tempFile.split(".jpg")[0];
-        RandomAccessFile raf = null;
-        try {
-            // 申明随机读取文件RandomAccessFile
-            raf = new RandomAccessFile(new File(file), "rw");
+        String fileName = StringUtils.substringBeforeLast(tempFile, ".");
+        try (// 申明随机读取文件RandomAccessFile
+            RandomAccessFile raf = new RandomAccessFile(new File(file), "rw")) {
             // 开始合并文件，对应切片的二进制文件
             for (int i = 0; i < tempCount; i++) {
                 // 读取切片文件
-                RandomAccessFile reader = new RandomAccessFile(new File(a + "_" + i + ".tmp"), "r");
+                RandomAccessFile reader = new RandomAccessFile(new File(fileName + "_" + i + ".tmp"), "r");
                 byte[] b = new byte[1024];
                 int n = 0;
                 // 先读后写
@@ -126,12 +129,6 @@ public class SplitFileUtils {
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            try {
-                raf.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 }
